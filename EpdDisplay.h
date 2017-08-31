@@ -36,16 +36,14 @@ static inline uint16_t mirror(uint16_t value, uint16_t maxi)
 #define D2 4
 #define D4 2
 
+#define EPD_2x9_DISPLAY_WIDTH 128
+#define EPD_2x9_DISPLAY_HEIGHT 296
+
+#define EPD_1x54_DISPLAY_WIDTH 200
+#define EPD_1x54_DISPLAY_HEIGHT 200
+
 #define EPD_BLACK 0x0000
 #define EPD_WHITE 0xFFFF
-
-#define DISPLAY_WIDTH 128
-#define DISPLAY_HEIGHT 296
-
-#define DISPLAY_BUFFER_SIZER (uint32_t(DISPLAY_WIDTH) * uint32_t(DISPLAY_HEIGHT) / 8)
-
-#define DISPLAY_LAST_X (DISPLAY_WIDTH-1)
-#define DISPLAY_LAST_Y (DISPLAY_HEIGHT-1)
 
 #define CMD_DISPLAY_ACTIVATION 0x20
 #define CMD_DISPLAY_UPDATE 0x22
@@ -75,12 +73,12 @@ const uint8_t LUTDefault_part[] =
   0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x14, 0x44, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-const uint8_t GDOControl[] = {0x01, DISPLAY_LAST_Y % 256, DISPLAY_LAST_Y / 256, 0x00};
-const uint8_t softstart[] = {0x0c, 0xd7, 0xd6, 0x9d};
-const uint8_t VCOMVol[] = {0x2c, 0xa8};
-const uint8_t DummyLine[] = {0x3a, 0x1a};
-const uint8_t Gatetime[] = {0x3b, 0x08}; // 2us per line
-const uint8_t RamDataEntryMode[] = {0x11, 0x01};
+uint8_t GDOControl[] = {0x01, 295 % 256, 295 / 256, 0x00};
+uint8_t softstart[] = {0x0c, 0xd7, 0xd6, 0x9d};
+uint8_t VCOMVol[] = {0x2c, 0xa8};
+uint8_t DummyLine[] = {0x3a, 0x1a};
+uint8_t Gatetime[] = {0x3b, 0x08}; // 2us per line
+uint8_t RamDataEntryMode[] = {0x11, 0x01};
 
 class EpdDisplayState {
 public:
@@ -96,17 +94,23 @@ private:
   EpdDisplayState state;
   SpiLine spiOutput;
   uint8_t busyPin;
-  uint8_t pixelBuffer[DISPLAY_BUFFER_SIZER];
+  uint8_t *pixelBuffer;
   bool isSyncOperation = true;
 
   uint8_t partialUpdateThreshold = 10;
   
 public:
-  EpdDisplay(uint8_t cs = SS, uint8_t dc = D1, uint8_t rst = D4, uint8_t busy = D2, bool operateAsync = false) : 
-    Adafruit_GFX(DISPLAY_WIDTH, DISPLAY_HEIGHT), spiOutput(SpiLine(SPI, cs, dc, rst))
+  EpdDisplay(int16_t width, int16_t height, bool operateAsync = false,
+      uint8_t cs = SS, uint8_t dc = D1, uint8_t rst = D4, uint8_t busy = D2) : 
+    Adafruit_GFX(width, height), spiOutput(SpiLine(SPI, cs, dc, rst))
   {
     busyPin = busy;
     isSyncOperation = !operateAsync;
+    
+    pixelBuffer = (uint8_t*)malloc(width * height / 8);
+    
+    GDOControl[1] = height % 256;
+    GDOControl[2] = height / 256;
   }
 
   virtual void init(EpdDisplayState *storedState)
@@ -120,6 +124,11 @@ public:
     if (storedState != NULL)
       state = *storedState;
   }
+  
+  EpdDisplayState* getState()
+  {
+    return &state;
+  }
 
   void initFullMode()
   {
@@ -130,7 +139,7 @@ public:
     state.isFullMode = true;
 
     // Having it here has some slight advantages (in update cleanliness)
-    setAddresses(0x00, DISPLAY_LAST_X, DISPLAY_LAST_Y, 0x00); 
+    setAddresses(0x00, WIDTH - 1, HEIGHT - 1, 0x00); 
 
     // NOTE also works with LUTDefault_part here (only no full update then)
     writeCommandData(LUTDefault_full, sizeof(LUTDefault_full));
@@ -161,13 +170,15 @@ public:
         break;
       case 2:
         // bottom-up portrait: this is the most natural for the display; esp. x-order is correct
-        y = mirror(y, DISPLAY_HEIGHT);
+        y = mirror(y, HEIGHT);
         break;
       default:
         Serial.println("!!! Rotation value not supported.");
     }
+    
+    // TODO / NOTE usage of WIDTH and HEIGHT here: they have the wrong meaning but it (only) works with them
 
-    uint16_t lineWidth = DISPLAY_WIDTH / 8;
+    uint16_t lineWidth = WIDTH / 8;
     uint16_t idx = x / 8 + y * lineWidth;
     byte value = color == EPD_BLACK ? 0 : 1;
     byte bitInByte = x % 8;
@@ -228,7 +239,7 @@ private:
 
   void showBuffer(uint8_t *data, bool mono)
   {
-    showBuffer(0, DISPLAY_LAST_X, 0, DISPLAY_LAST_Y, data, mono);
+    showBuffer(0, WIDTH - 1, 0, HEIGHT - 1, data, mono);
   }
   
   void showBuffer(uint8_t xStart, uint8_t xEnd,
