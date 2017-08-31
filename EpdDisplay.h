@@ -18,8 +18,6 @@
 
 #include "SpiLine.h"
 
-#define min(a,b) ((a)<(b)?(a):(b))
-
 template <typename T> static inline void
 swap(T& a, T& b)
 {
@@ -31,7 +29,6 @@ swap(T& a, T& b)
 // mirror a pixel around a center line
 static inline uint16_t mirror(uint16_t value, uint16_t maxi)
 {
-  // TODO check which is smaller?
   return maxi - value - 1;
 }
 
@@ -121,9 +118,9 @@ public:
 
     pinMode(busyPin, INPUT);
       
-	initializeRegisters();
+    initializeRegisters();
 	
-	if (storedState != NULL)
+    if (storedState != NULL)
       state = *storedState;
   }
 
@@ -217,8 +214,6 @@ public:
     if (!isSyncOperation && isBusy())
       return;
 
-    bool wasPartial = false;
-
     // NOTE / TODO mixing reset/init and partial update (set ram pointers) toegether is very problematic
 
     showBuffer((uint8_t *)pixelBuffer, false);
@@ -233,8 +228,6 @@ public:
   }
 
 private:
-
-  bool first = true;
 
   void showBuffer(uint8_t *data, bool mono)
   {
@@ -251,8 +244,6 @@ private:
     if (!state.isFullMode)
       setAddresses(xStart, xEnd, yEnd, yStart);
     // else was set in init...
-
-    uint32_t m0 = millis();
   
     writeDisplayData(xEnd-xStart+1, yEnd-yStart+1, data, mono);
 
@@ -262,22 +253,7 @@ private:
       sendUpdatePartCommands();
 
     if (isSyncOperation) {
-      uint32_t m1 = millis();
       waitWhileBusy();
-      uint32_t m2 = millis();
-
-      if (true || first) {
-        /* TODO
-        Serial.print(state.isFullMode ? "Full" : "Part");
-        Serial.print(" update ");
-        Serial.print(m1-m0);
-        Serial.print(" + ");
-        Serial.println(m2-m1);
-        */
-  
-        first = false;
-      }
-      
     }
     // TODO else
   
@@ -361,9 +337,9 @@ private:
   {
     writeCommandData(GDOControl, sizeof(GDOControl)); // Pannel configuration, Gate selection
     writeCommandData(softstart, sizeof(softstart)); // X decrease, Y decrease
-    writeCommandData(VCOMVol, sizeof(VCOMVol)); // VCOM setting
-    writeCommandData(DummyLine, sizeof(DummyLine)); // dummy line per gate
-    writeCommandData(Gatetime, sizeof(Gatetime)); // Gate time setting
+    writeCommandData(VCOMVol, sizeof(VCOMVol));
+    writeCommandData(DummyLine, sizeof(DummyLine));
+    writeCommandData(Gatetime, sizeof(Gatetime));
     writeCommandData(RamDataEntryMode, sizeof(RamDataEntryMode)); // X increase, Y decrease
   }
   
@@ -410,7 +386,7 @@ private:
     {
       if (digitalRead(busyPin) == LOW) 
         break;
-      delay(10);
+      delay(5);
     }
   }
 };
