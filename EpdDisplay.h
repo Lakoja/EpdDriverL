@@ -82,8 +82,6 @@ const uint8_t DummyLine[] = {0x3a, 0x1a};
 const uint8_t Gatetime[] = {0x3b, 0x08}; // 2us per line
 const uint8_t RamDataEntryMode[] = {0x11, 0x01};
 
-SpiLine io(SPI, SS, D1, D4);
-
 class EpdDisplayState {
 public:
   uint32_t partialUpdateCount = 0;
@@ -92,12 +90,11 @@ public:
   bool isPowerOff = true;
 };
 
-EpdDisplayState state;
-
 class EpdDisplay : public Adafruit_GFX 
 {
 private:
-  SpiLine& spiOutput;
+  EpdDisplayState state;
+  SpiLine spiOutput;
   uint8_t busyPin;
   uint8_t pixelBuffer[DISPLAY_BUFFER_SIZER];
   bool isSyncOperation = true;
@@ -105,10 +102,10 @@ private:
   uint8_t partialUpdateThreshold = 10;
   
 public:
-  EpdDisplay(bool operateAsync = false) : 
-    Adafruit_GFX(DISPLAY_WIDTH, DISPLAY_HEIGHT), spiOutput(io)
+  EpdDisplay(uint8_t cs = SS, uint8_t dc = D1, uint8_t rst = D4, uint8_t busy = D2, bool operateAsync = false) : 
+    Adafruit_GFX(DISPLAY_WIDTH, DISPLAY_HEIGHT), spiOutput(SpiLine(SPI, cs, dc, rst))
   {
-    busyPin = D2;
+    busyPin = busy;
     isSyncOperation = !operateAsync;
   }
 
@@ -163,7 +160,7 @@ public:
         swap(x, y);
         break;
       case 2:
-        // this is the most natural for the display; esp. x-order is correct
+        // bottom-up portrait: this is the most natural for the display; esp. x-order is correct
         y = mirror(y, DISPLAY_HEIGHT);
         break;
       default:
