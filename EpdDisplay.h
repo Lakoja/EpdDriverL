@@ -75,12 +75,12 @@ const uint8_t LUTDefault_part[] =
   0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x14, 0x44, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-const uint8_t GDOControl[] = {0x01, DISPLAY_LAST_Y % 256, DISPLAY_LAST_Y / 256, 0x00}; //for 2.9inch
+const uint8_t GDOControl[] = {0x01, DISPLAY_LAST_Y % 256, DISPLAY_LAST_Y / 256, 0x00};
 const uint8_t softstart[] = {0x0c, 0xd7, 0xd6, 0x9d};
-const uint8_t VCOMVol[] = {0x2c, 0xa8};  // VCOM 7c
-const uint8_t DummyLine[] = {0x3a, 0x1a}; // 4 dummy line per gate
-const uint8_t Gatetime[] = {0x3b, 0x08};  // 2us per line
-const uint8_t RamDataEntryMode[] = {0x11, 0x01};  // Ram data entry mode
+const uint8_t VCOMVol[] = {0x2c, 0xa8};
+const uint8_t DummyLine[] = {0x3a, 0x1a};
+const uint8_t Gatetime[] = {0x3b, 0x08}; // 2us per line
+const uint8_t RamDataEntryMode[] = {0x11, 0x01};
 
 SpiLine io(SPI, SS, D1, D4);
 
