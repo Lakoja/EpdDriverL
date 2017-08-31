@@ -25,12 +25,11 @@ class SpiLine
 {
 private:
   SPIClass& spiSink;
-  int8_t selectPin, dataCommandPin, resetPin;
+  uint8_t selectPin, dataCommandPin, resetPin;
   
 public:
-  SpiLine(SPIClass& spi, int8_t cs, int8_t dc, int8_t rst) : spiSink(spi)
+  SpiLine(SPIClass& spi, uint8_t cs, uint8_t dc, uint8_t rst) : spiSink(spi)
   {
-    // TODO selectPin cannot be undefined (<=0)
     selectPin = cs;
     dataCommandPin = dc;
     resetPin = rst;
@@ -38,32 +37,21 @@ public:
   
   void reset()
   {
-    if (resetPin >= 0)
-    {
-      digitalWrite(resetPin, LOW);
-      delay(40);
-      digitalWrite(resetPin, HIGH);
-      delay(40);
-    }
+    digitalWrite(resetPin, LOW);
+    delay(40);
+    digitalWrite(resetPin, HIGH);
+    delay(40);
   }
   
   void init(uint32_t freq = SPI_DEFAULT_FREQUENCY)
   {
-    if (selectPin >= 0)
-    {
-      digitalWrite(selectPin, HIGH);
-      pinMode(selectPin, OUTPUT);
-    }
-    if (dataCommandPin >= 0)
-    {
-      digitalWrite(dataCommandPin, HIGH);
-      pinMode(dataCommandPin, OUTPUT);
-    }
-    if (resetPin >= 0)
-    {
-      digitalWrite(resetPin, HIGH);
-      pinMode(resetPin, OUTPUT);
-    }
+    digitalWrite(selectPin, HIGH);
+    pinMode(selectPin, OUTPUT);
+    digitalWrite(dataCommandPin, HIGH);
+    pinMode(dataCommandPin, OUTPUT);
+    digitalWrite(resetPin, HIGH);
+    pinMode(resetPin, OUTPUT);
+      
     reset();
     
     spiSink.begin();
@@ -74,25 +62,25 @@ public:
   
   void writeCommandTransaction(uint8_t c)
   {
-    if (dataCommandPin >= 0) digitalWrite(dataCommandPin, LOW);
-    if (selectPin >= 0) digitalWrite(selectPin, LOW);
+    digitalWrite(dataCommandPin, LOW);
+    digitalWrite(selectPin, LOW);
     spiSink.transfer(c);
-    if (selectPin >= 0) digitalWrite(selectPin, HIGH);
-    if (dataCommandPin >= 0) digitalWrite(dataCommandPin, HIGH);
+    digitalWrite(selectPin, HIGH);
+    digitalWrite(dataCommandPin, HIGH);
   }
   
   void writeDataTransaction(uint8_t d)
   {
-    if (selectPin >= 0) digitalWrite(selectPin, LOW);
+    digitalWrite(selectPin, LOW);
     spiSink.transfer(d);
-    if (selectPin >= 0) digitalWrite(selectPin, HIGH);
+    digitalWrite(selectPin, HIGH);
   }
   
   void writeCommand(uint8_t c)
   {
-    if (dataCommandPin >= 0) digitalWrite(dataCommandPin, LOW);
+    digitalWrite(dataCommandPin, LOW);
     spiSink.transfer(c);
-    if (dataCommandPin >= 0) digitalWrite(dataCommandPin, HIGH);
+    digitalWrite(dataCommandPin, HIGH);
   }
   
   void writeData(uint8_t d)
@@ -102,12 +90,12 @@ public:
   
   void startTransaction()
   {
-    if (selectPin >= 0) digitalWrite(selectPin, LOW);
+    digitalWrite(selectPin, LOW);
   }
   
   void endTransaction()
   {
-    if (selectPin >= 0) digitalWrite(selectPin, HIGH);
+    digitalWrite(selectPin, HIGH);
   }
 };
 
