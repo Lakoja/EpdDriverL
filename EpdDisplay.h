@@ -121,8 +121,10 @@ public:
       
     initializeRegisters();
 	
-    if (storedState != NULL)
+    if (storedState != NULL) {
       state = *storedState;
+      state.isInitialized = false;
+    }
   }
   
   EpdDisplayState* getState()
