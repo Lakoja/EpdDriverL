@@ -196,7 +196,7 @@ public:
 
   virtual void fillScreen(uint16_t color)
   {
-    memset(pixelBuffer, (uint8_t)color, sizeof(pixelBuffer));
+    memset(pixelBuffer, (uint8_t)color, width() * height() / 8);
   }
 
   void updatePartOrFull()
