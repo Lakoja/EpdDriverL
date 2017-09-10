@@ -82,7 +82,7 @@ uint8_t RamDataEntryMode[] = {0x11, 0x01};
 
 class EpdDisplayState {
 public:
-  uint32_t partialUpdateCount = 0;
+  uint8_t partialUpdateCount = 0;
   bool isInitialized = false;
   bool isFullMode = true;
   bool isPowerOff = true;
@@ -97,7 +97,7 @@ private:
   uint8_t *pixelBuffer;
   bool isSyncOperation = true;
 
-  uint8_t partialUpdateThreshold = 10;
+  uint8_t partialUpdateThreshold = 7;
   
 public:
   EpdDisplay(int16_t width, int16_t height, bool operateAsync = false,
@@ -146,6 +146,7 @@ public:
     // NOTE also works with LUTDefault_part here (only no full update then)
     writeCommandData(LUTDefault_full, sizeof(LUTDefault_full));
     sendPowerOnCommands();
+    sendPowerOffCommands();
   }
 
   void initPartialMode()
@@ -158,6 +159,7 @@ public:
 
     writeCommandData(LUTDefault_part, sizeof(LUTDefault_part));
     sendPowerOnCommands();
+    sendPowerOffCommands();
   }
   
   virtual void drawPixel(int16_t x, int16_t y, uint16_t color)
@@ -225,6 +227,10 @@ public:
       return;
 
     // NOTE / TODO mixing reset/init and partial update (set ram pointers) toegether is very problematic
+    
+    if (state.isPowerOff) {
+      sendPowerOnCommands();
+    }
 
     showBuffer((uint8_t *)pixelBuffer, false);
 	
@@ -247,10 +253,6 @@ private:
   void showBuffer(uint8_t xStart, uint8_t xEnd,
       uint16_t yStart, uint16_t yEnd, uint8_t *data, bool mono)
   {
-    if (state.isPowerOff) {
-      sendPowerOnCommands();
-    }
-
     if (!state.isFullMode)
       setAddresses(xStart, xEnd, yEnd, yStart);
     // else was set in init...
@@ -321,9 +323,6 @@ private:
   
   void sendPowerOnCommands()
   {
-    if (state.isPowerOff == false)
-      Serial.println("!Wrong power on");
-    
     writeCommand(CMD_DISPLAY_UPDATE);
     writeData(DATA_CLK_CP_ON);
     writeCommand(CMD_DISPLAY_ACTIVATION);
@@ -333,9 +332,6 @@ private:
   
   void sendPowerOffCommands()
   {
-    if (state.isPowerOff == true)
-      Serial.println("!Wrong power off");
-    
     writeCommand(CMD_DISPLAY_UPDATE);
     writeData(DATA_CLK_CP_OFF);
     writeCommand(CMD_DISPLAY_ACTIVATION);
