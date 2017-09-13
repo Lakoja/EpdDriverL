@@ -169,6 +169,9 @@ public:
 
     // TODO maybe a direction can be specified? in ram area
     switch (getRotation()) {
+      case 0:
+        x = mirror(x, WIDTH);
+        break;
       case 1:
         swap(x, y);
         break;
@@ -176,8 +179,11 @@ public:
         // bottom-up portrait: this is the most natural for the display; esp. x-order is correct
         y = mirror(y, HEIGHT);
         break;
-      default:
-        Serial.println("!!! Rotation value not supported.");
+      case 3:
+        swap(x, y);
+        x = mirror(x, WIDTH);
+        y = mirror(y, HEIGHT);
+        break;
     }
     
     // TODO / NOTE usage of WIDTH and HEIGHT here: they have the wrong meaning but it (only) works with them
