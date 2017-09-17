@@ -96,6 +96,7 @@ private:
   uint8_t busyPin;
   uint8_t *pixelBuffer;
   bool isSyncOperation = true;
+  bool isUpdateFinishPending = false;
 
   uint8_t partialUpdateThreshold = 7;
   
@@ -146,6 +147,7 @@ public:
     // NOTE also works with LUTDefault_part here (only no full update then)
     writeCommandData(LUTDefault_full, sizeof(LUTDefault_full));
     sendPowerOnCommands();
+    waitWhileBusy();
     sendPowerOffCommands();
   }
 
@@ -159,6 +161,7 @@ public:
 
     writeCommandData(LUTDefault_part, sizeof(LUTDefault_part));
     sendPowerOnCommands();
+    waitWhileBusy();
     sendPowerOffCommands();
   }
   
@@ -207,8 +210,13 @@ public:
     memset(pixelBuffer, (uint8_t)color, width() * height() / 8);
   }
 
+  // TODO make this configurable / influencable?
   void updatePartOrFull()
   {
+    if (!isSyncOperation) {
+      Serial.println("!!!! Not supported in async mode.");
+    }
+    
     if (state.partialUpdateCount >= partialUpdateThreshold) {
       state.partialUpdateCount = 0;
 
@@ -231,17 +239,44 @@ public:
   {
     if (!isSyncOperation && isBusy())
       return;
+    // TODO also record a "do another update"?
 
     // NOTE / TODO mixing reset/init and partial update (set ram pointers) toegether is very problematic
     
     if (state.isPowerOff) {
       sendPowerOnCommands();
     }
+    
+    if (!state.isFullMode)
+      setAddresses(0, WIDTH - 1, HEIGHT - 1, 0);
+    // else was set in init...
+  
+    writeDisplayData(WIDTH, HEIGHT, (uint8_t *)pixelBuffer, false);
 
-    showBuffer((uint8_t *)pixelBuffer, false);
-	
-    sendPowerOffCommands();
-    waitWhileBusy();
+    if (state.isFullMode)
+      sendUpdateFullCommands();
+    else
+      sendUpdatePartCommands();
+
+    if (isSyncOperation) {
+      waitWhileBusy();
+      finishUpdate();
+      waitWhileBusy();
+    } else {
+      Serial.println("Enqueing update finish");
+      isUpdateFinishPending = true;
+    }
+  }
+  
+  void driveAsync()
+  {
+    if (!isSyncOperation && isUpdateFinishPending && !isBusy()) {
+      // earlier command finished
+      Serial.println("Finishing update");
+      finishUpdate();
+    }
+    
+    // TODO output error if this was not called/finished
   }
 
   bool isBusy()
@@ -251,35 +286,20 @@ public:
 
 private:
 
-  void showBuffer(uint8_t *data, bool mono)
+  void finishUpdate()
   {
-    showBuffer(0, WIDTH - 1, 0, HEIGHT - 1, data, mono);
-  }
-  
-  void showBuffer(uint8_t xStart, uint8_t xEnd,
-      uint16_t yStart, uint16_t yEnd, uint8_t *data, bool mono)
-  {
-    if (!state.isFullMode)
-      setAddresses(xStart, xEnd, yEnd, yStart);
-    // else was set in init...
-  
-    writeDisplayData(xEnd-xStart+1, yEnd-yStart+1, data, mono);
-
-    if (state.isFullMode)
-      sendUpdateFullCommands();
-    else
-      sendUpdatePartCommands();
-
-    if (isSyncOperation) {
-      waitWhileBusy();
-    }
-    // TODO else
-  
+    isUpdateFinishPending = false;
+    
+    // TODO prohibit state changes somehow?
+    // TODO monitor / guard the init methods
+    
     if (!state.isFullMode) {
       // Disabling those enables a two screen flashing...
       //setAddresses(xStart, xEnd, yEnd, yStart);
-      writeDisplayData(xEnd-xStart+1, yEnd-yStart+1, data, mono);
+      writeDisplayData(WIDTH, HEIGHT, (uint8_t *)pixelBuffer, false);
     }
+  
+    sendPowerOffCommands();
   }
 
   void writeDisplayData(uint8_t XSize, uint16_t YSize, uint8_t *data, bool mono)
