@@ -35,6 +35,7 @@ static inline uint16_t mirror(uint16_t value, uint16_t maxi)
 #define D1 5
 #define D2 4
 #define D4 2
+#define D6 12
 
 #define EPD_2x9_DISPLAY_WIDTH 128
 #define EPD_2x9_DISPLAY_HEIGHT 296
