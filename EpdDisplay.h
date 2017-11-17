@@ -32,11 +32,6 @@ static inline uint16_t mirror(uint16_t value, uint16_t maxi)
   return maxi - value - 1;
 }
 
-#define D1 5
-#define D2 4
-#define D4 2
-#define D6 12
-
 #define EPD_2x9_DISPLAY_WIDTH 128
 #define EPD_2x9_DISPLAY_HEIGHT 296
 
@@ -89,6 +84,11 @@ public:
   bool isPowerOff = true;
 };
 
+#define D1 5
+#define D2 4
+#define D4 2
+#define D6 12
+
 class EpdDisplay : public Adafruit_GFX 
 {
 private:
@@ -103,7 +103,7 @@ private:
   
 public:
   EpdDisplay(int16_t width, int16_t height, bool operateAsync = false,
-      uint8_t cs = SS, uint8_t dc = D1, uint8_t rst = D4, uint8_t busy = D2) : 
+      uint8_t cs = SS, uint8_t dc = D2, uint8_t rst = D4, uint8_t busy = D6) : 
     Adafruit_GFX(width, height), spiOutput(SpiLine(SPI, cs, dc, rst))
   {
     busyPin = busy;
