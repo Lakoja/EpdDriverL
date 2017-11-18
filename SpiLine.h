@@ -26,6 +26,7 @@ class SpiLine
 private:
   SPIClass& spiSink;
   uint8_t selectPin, dataCommandPin, resetPin;
+  bool transactionStarted = false;
   
 public:
   SpiLine(SPIClass& spi, uint8_t cs, uint8_t dc, uint8_t rst) : spiSink(spi)
@@ -62,22 +63,25 @@ public:
   
   void writeCommandTransaction(uint8_t c)
   {
-    digitalWrite(dataCommandPin, LOW);
-    digitalWrite(selectPin, LOW);
-    spiSink.transfer(c);
-    digitalWrite(selectPin, HIGH);
-    digitalWrite(dataCommandPin, HIGH);
+    startTransaction();
+    writeCommand(c);
+    endTransaction();
   }
   
   void writeDataTransaction(uint8_t d)
   {
-    digitalWrite(selectPin, LOW);
-    spiSink.transfer(d);
-    digitalWrite(selectPin, HIGH);
+    startTransaction();
+    writeData(d);
+    endTransaction();
   }
   
   void writeCommand(uint8_t c)
   {
+    if (!transactionStarted) {
+      Serial.print("NO TRANSACTION ");
+      Serial.println(c);
+    }
+    
     digitalWrite(dataCommandPin, LOW);
     spiSink.transfer(c);
     digitalWrite(dataCommandPin, HIGH);
@@ -85,17 +89,22 @@ public:
   
   void writeData(uint8_t d)
   {
+    if (!transactionStarted)
+      Serial.println("NO TRANSACTION");
+    
     spiSink.transfer(d);
   }
   
   void startTransaction()
   {
     digitalWrite(selectPin, LOW);
+    transactionStarted = true;
   }
   
   void endTransaction()
   {
     digitalWrite(selectPin, HIGH);
+    transactionStarted = false;
   }
 };
 

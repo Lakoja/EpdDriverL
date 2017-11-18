@@ -145,7 +145,10 @@ public:
     setAddresses(0x00, WIDTH - 1, HEIGHT - 1, 0x00); 
 
     // NOTE also works with LUTDefault_part here (only no full update then)
+    spiOutput.startTransaction();
     writeCommandData(LUTDefault_full, sizeof(LUTDefault_full));
+    spiOutput.endTransaction();
+    
     sendPowerOnCommands();
     sendPowerOffCommands();
   }
@@ -158,7 +161,12 @@ public:
     state.isInitialized = true;
     state.isFullMode = false;
 
+    // TODO have a proper transaction tracking??
+    
+    spiOutput.startTransaction();
     writeCommandData(LUTDefault_part, sizeof(LUTDefault_part));
+    spiOutput.endTransaction();
+    
     sendPowerOnCommands();
     sendPowerOffCommands();
   }
@@ -289,6 +297,7 @@ private:
     
     waitWhileBusy(); // TODO important: Otherwise no clear before partial update
     
+    spiOutput.startTransaction();
     writeCommand(CMD_PIXEL_DATA);
     
     for (uint16_t i=0; i<XSize; i++){
@@ -299,6 +308,7 @@ private:
           data++;
       }
     }
+    spiOutput.endTransaction();
   }
 
   void setAddresses(uint16_t Xstart, uint16_t Xend, uint16_t Ystart, uint16_t Yend)
@@ -309,6 +319,7 @@ private:
   
   void setRamArea(uint8_t Xstart, uint8_t Xend, uint16_t Ystart, uint16_t Yend)
   {
+    spiOutput.startTransaction();
     writeCommand(CMD_SET_RAM_X);
     writeData(Xstart);
     writeData(Xend);
@@ -317,80 +328,91 @@ private:
     writeData(Ystart / 256);
     writeData(Yend % 256);
     writeData(Yend / 256);
+    spiOutput.endTransaction();
   }
   
   void setRamPointer(uint8_t addrX, uint16_t addrY)
   {
+    spiOutput.startTransaction();
     writeCommand(CMD_SET_RAM_X_COUNTER);
     writeData(addrX);
     writeCommand(CMD_SET_RAM_Y_COUNTER);
     writeData(addrY % 256);
     writeData(addrY / 256);
+    spiOutput.endTransaction();
   }
   
   void sendPowerOnCommands()
   {
+    spiOutput.startTransaction();
     writeCommand(CMD_DISPLAY_UPDATE);
     writeData(DATA_CLK_CP_ON);
     writeCommand(CMD_DISPLAY_ACTIVATION);
+    spiOutput.endTransaction();
 
     state.isPowerOff = false;
   }
   
   void sendPowerOffCommands()
   {
+    spiOutput.startTransaction();
     writeCommand(CMD_DISPLAY_UPDATE);
     writeData(DATA_CLK_CP_OFF);
     writeCommand(CMD_DISPLAY_ACTIVATION);
+    spiOutput.endTransaction();
 
     state.isPowerOff = true;
   }
   
   void initializeRegisters()
   {
+    spiOutput.startTransaction();
     writeCommandData(GDOControl, sizeof(GDOControl)); // Pannel configuration, Gate selection
     writeCommandData(softstart, sizeof(softstart)); // X decrease, Y decrease
     writeCommandData(VCOMVol, sizeof(VCOMVol));
     writeCommandData(DummyLine, sizeof(DummyLine));
     writeCommandData(Gatetime, sizeof(Gatetime));
     writeCommandData(RamDataEntryMode, sizeof(RamDataEntryMode)); // X increase, Y decrease
+    spiOutput.endTransaction();
   }
   
   void sendUpdateFullCommands()
   {
+    spiOutput.startTransaction();
     writeCommand(CMD_DISPLAY_UPDATE);
     writeData(0xc4); // TODO use c7?
     writeCommand(CMD_DISPLAY_ACTIVATION);
     writeCommand(CMD_NOP_TERMINATE_WRITE);
+    spiOutput.endTransaction();
   }
   
   void sendUpdatePartCommands()
   {
+    spiOutput.startTransaction();
     writeCommand(CMD_DISPLAY_UPDATE);
     writeData(0x04);
     writeCommand(CMD_DISPLAY_ACTIVATION);
     writeCommand(CMD_NOP_TERMINATE_WRITE);
+    spiOutput.endTransaction();
   }
   
   void writeCommand(uint8_t command)
   {
-    spiOutput.writeCommandTransaction(command);
+    spiOutput.writeCommand(command);
   }
   
   void writeData(uint8_t data)
   {
-    spiOutput.writeDataTransaction(data);
+    spiOutput.writeData(data);
   }
   
   void writeCommandData(const uint8_t* pCommandData, uint8_t datalen)
   {
-    spiOutput.startTransaction();
     spiOutput.writeCommand(*pCommandData++);
     for (uint8_t i = 0; i < datalen - 1; i++)
     {
       spiOutput.writeData(*pCommandData++);
     }
-    spiOutput.endTransaction();
   }
   
   void waitWhileBusy()
